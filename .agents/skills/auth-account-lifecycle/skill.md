@@ -86,3 +86,23 @@ await prisma.user.create({
     emailVerified: null,
   },
 })
+// OAuth linking decision
+if (googleProfile.emailVerified === true) {
+  // Existing account may be linked.
+} else {
+  // Do not auto-link.
+  // Require the password-reset verification flow.
+}
+// Account deletion state transition
+await prisma.user.update({
+  where: { id: session.user.id },
+  data: {
+    deactivatedAt: new Date(),
+  },
+})
+// Final deletion
+await prisma.user.delete({
+  where: {
+    id: user.id,
+  },
+})
