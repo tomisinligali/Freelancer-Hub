@@ -105,12 +105,14 @@ export default async function ProjectDetailPage({
           : null,
         timeEntries: project.timeEntries.map(t => ({
           id: t.id,
+          projectId: project.id,
           date: t.date.toISOString(),
           minutes: t.minutes,
           note: t.note,
         })),
         payments: project.payments.map(p => ({
           id: p.id,
+          projectId: project.id,
           amount: p.amount.toString(),
           status: p.status,
           dueDate: p.dueDate.toISOString(),

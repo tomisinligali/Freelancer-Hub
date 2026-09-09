@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ProjectFormModal, type ActiveClientOption, type ProjectFormData } from "@/components/projects/ProjectFormModal";
 import { DeleteProjectModal } from "@/components/projects/DeleteProjectModal";
 import { ProjectStatusSelect } from "@/components/projects/ProjectStatusSelect";
+import { TimeEntriesList, type TimeEntryItem } from "@/components/time/TimeEntriesList";
+import { PaymentsList, type PaymentItem } from "@/components/payments/PaymentsList";
 import { Button } from "@/components/ui/Button";
 import type { ProjectStatusType } from "@/lib/validation/project";
 
@@ -26,19 +28,8 @@ export interface ProjectDetailViewProps {
       email: string | null;
       archivedAt: string | null;
     } | null;
-    timeEntries: {
-      id: string;
-      date: string;
-      minutes: number;
-      note: string | null;
-    }[];
-    payments: {
-      id: string;
-      amount: string;
-      status: "PENDING" | "PAID";
-      dueDate: string;
-      paidDate: string | null;
-    }[];
+    timeEntries: TimeEntryItem[];
+    payments: PaymentItem[];
   };
   activeClients: ActiveClientOption[];
 }
@@ -49,12 +40,7 @@ export function ProjectDetailClient({
 }: ProjectDetailViewProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
-  const totalMinutes = project.timeEntries.reduce((sum, t) => sum + t.minutes, 0);
-  const totalHours = (totalMinutes / 60).toFixed(1);
-
-  const totalPayments = project.payments.length;
-  const pendingPayments = project.payments.filter(p => p.status === "PENDING").length;
+  const [activeTab, setActiveTab] = useState<"time" | "payments" | "details">("time");
 
   const projectFormData: ProjectFormData = {
     id: project.id,
@@ -120,71 +106,87 @@ export function ProjectDetailClient({
         </div>
       </header>
 
-      <div className="fh-client-detail-grid">
-        {/* Project Info Card */}
-        <section className="fh-detail-card">
-          <h2 className="fh-detail-card-title">Project Details</h2>
-          <div className="fh-detail-info-list">
-            <div className="fh-detail-info-item">
-              <span className="fh-detail-info-label">Description</span>
-              <p className="fh-detail-info-notes">
-                {project.description || <span className="fh-text-muted">No description provided.</span>}
-              </p>
-            </div>
-
-            <div className="fh-form-row">
-              <div className="fh-detail-info-item">
-                <span className="fh-detail-info-label">Start Date</span>
-                <span className="fh-detail-info-value">
-                  {project.startDate
-                    ? new Date(project.startDate).toLocaleDateString()
-                    : <span className="fh-text-muted">Not set</span>}
-                </span>
-              </div>
-
-              <div className="fh-detail-info-item">
-                <span className="fh-detail-info-label">Due Date</span>
-                <span className="fh-detail-info-value">
-                  {project.dueDate
-                    ? new Date(project.dueDate).toLocaleDateString()
-                    : <span className="fh-text-muted">Not set</span>}
-                </span>
-              </div>
-            </div>
-
-            {project.completedAt ? (
-              <div className="fh-detail-info-item">
-                <span className="fh-detail-info-label">Completed Date</span>
-                <span className="fh-detail-info-value" style={{ color: "var(--color-success)" }}>
-                  {new Date(project.completedAt).toLocaleDateString()}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        {/* Overview & Activity Card */}
-        <section className="fh-detail-card">
-          <h2 className="fh-detail-card-title">Activity & Trackers</h2>
-          <div className="fh-tracker-preview-grid">
-            <div className="fh-tracker-box">
-              <span className="fh-tracker-box-label">Logged Time</span>
-              <span className="fh-tracker-box-value">{totalHours} hrs</span>
-              <span className="fh-tracker-box-sub">
-                {project.timeEntries.length} {project.timeEntries.length === 1 ? "entry" : "entries"}
-              </span>
-            </div>
-
-            <div className="fh-tracker-box">
-              <span className="fh-tracker-box-label">Payments</span>
-              <span className="fh-tracker-box-value">{totalPayments} records</span>
-              <span className="fh-tracker-box-sub">
-                {pendingPayments} pending
-              </span>
-            </div>
-          </div>
-        </section>
+      {/* Tabs for Time Log, Payments, and Project Info */}
+      <div className="fh-detail-tabs-wrapper">
+        <div className="fh-clients-tabs">
+          <button
+            type="button"
+            onClick={() => setActiveTab("time")}
+            className={`fh-tab-btn ${activeTab === "time" ? "fh-tab-btn--active" : ""}`}
+          >
+            Time Log ({project.timeEntries.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("payments")}
+            className={`fh-tab-btn ${activeTab === "payments" ? "fh-tab-btn--active" : ""}`}
+          >
+            Payments ({project.payments.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("details")}
+            className={`fh-tab-btn ${activeTab === "details" ? "fh-tab-btn--active" : ""}`}
+          >
+            Project Details
+          </button>
+        </div>
       </div>
+
+      {activeTab === "time" ? (
+        <TimeEntriesList
+          projectId={project.id}
+          entries={project.timeEntries}
+        />
+      ) : activeTab === "payments" ? (
+        <PaymentsList
+          projectId={project.id}
+          payments={project.payments}
+        />
+      ) : (
+        <div className="fh-client-detail-grid">
+          <section className="fh-detail-card">
+            <h2 className="fh-detail-card-title">Project Scope & Notes</h2>
+            <div className="fh-detail-info-list">
+              <div className="fh-detail-info-item">
+                <span className="fh-detail-info-label">Description</span>
+                <p className="fh-detail-info-notes">
+                  {project.description || <span className="fh-text-muted">No description provided.</span>}
+                </p>
+              </div>
+
+              <div className="fh-form-row">
+                <div className="fh-detail-info-item">
+                  <span className="fh-detail-info-label">Start Date</span>
+                  <span className="fh-detail-info-value">
+                    {project.startDate
+                      ? new Date(project.startDate).toLocaleDateString()
+                      : <span className="fh-text-muted">Not set</span>}
+                  </span>
+                </div>
+
+                <div className="fh-detail-info-item">
+                  <span className="fh-detail-info-label">Due Date</span>
+                  <span className="fh-detail-info-value">
+                    {project.dueDate
+                      ? new Date(project.dueDate).toLocaleDateString()
+                      : <span className="fh-text-muted">Not set</span>}
+                  </span>
+                </div>
+              </div>
+
+              {project.completedAt ? (
+                <div className="fh-detail-info-item">
+                  <span className="fh-detail-info-label">Completed Date</span>
+                  <span className="fh-detail-info-value" style={{ color: "var(--color-success)" }}>
+                    {new Date(project.completedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      )}
 
       <ProjectFormModal
         isOpen={isEditOpen}
